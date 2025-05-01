@@ -1,4 +1,0 @@
-streamlit
-Plotly
-Pandas 
-xhtml2pdf
