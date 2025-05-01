@@ -3,6 +3,7 @@ import streamlit as st
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
+from reportlab.lib.utils import simpleSplit
 import tempfile
 import base64
 from datetime import datetime
@@ -10,7 +11,43 @@ import os
 
 st.set_page_config(page_title="Dashboard Inmobiliario", layout="centered")
 
-def crear_pdf(nombre_usuario, fecha, valor_inmueble, ingreso_mensual, cashflow_anual, cap_rate, roi, cuota_credito, recomendacion):
+def generar_justificacion(roi, cap_rate, cashflow_anual, recomendacion):
+    razones_buenas = []
+    razones_malas = []
+
+    if roi >= 10:
+        razones_buenas.append("el ROI es alto (superior al 10%)")
+    elif roi >= 5:
+        razones_buenas.append("el ROI es moderado (entre 5% y 10%)")
+    else:
+        razones_malas.append("el ROI es bajo (menor al 5%)")
+
+    if cap_rate >= 8:
+        razones_buenas.append("el CAP Rate es alto (superior al 8%)")
+    elif cap_rate >= 5:
+        razones_buenas.append("el CAP Rate es moderado (entre 5% y 8%)")
+    else:
+        razones_malas.append("el CAP Rate es bajo")
+
+    if cashflow_anual > 0:
+        razones_buenas.append("el flujo de caja anual es positivo")
+    else:
+        razones_malas.append("el flujo de caja anual es negativo")
+
+    justificacion = f"Se recomienda {recomendacion.upper()} porque "
+    if recomendacion == "COMPRAR":
+        justificacion += ", ".join(razones_buenas) + "."
+    elif recomendacion == "MANTENER / ESTUDIAR":
+        justificacion += "se deben considerar factores mixtos como: " + ", ".join(razones_buenas + razones_malas) + "."
+    else:
+        justificacion += ", ".join(razones_malas)
+        if razones_buenas:
+            justificacion += ", a pesar de que " + ", ".join(razones_buenas)
+        justificacion += "."
+
+    return justificacion
+
+def crear_pdf(nombre_usuario, fecha, valor_inmueble, ingreso_mensual, cashflow_anual, cap_rate, roi, cuota_credito, recomendacion, justificacion):
     tmpdir = tempfile.gettempdir()
     ruta_pdf = os.path.join(tmpdir, f"reporte_{datetime.now().timestamp()}.pdf")
 
@@ -49,6 +86,15 @@ def crear_pdf(nombre_usuario, fecha, valor_inmueble, ingreso_mensual, cashflow_a
     color = colors.green if recomendacion == "COMPRAR" else colors.orange if "MANTENER" in recomendacion else colors.red
     c.setFillColor(color)
     c.drawString(50, y, f"📌 Recomendación final: {recomendacion.upper()}")
+
+    y -= 30
+    c.setFont("Helvetica", 11)
+    c.setFillColor(colors.black)
+
+    lineas = simpleSplit(justificacion, "Helvetica", 11, width - 100)
+    for linea in lineas:
+        c.drawString(50, y, linea)
+        y -= 15
 
     c.save()
 
@@ -94,6 +140,15 @@ if st.button("✅ Calcular rentabilidad"):
     cap_rate = (ingreso_anual / valor_inmueble) * 100 if valor_inmueble else 0
     roi = (cashflow_anual / cuota_inicial) * 100 if cuota_inicial else 0
 
+    if roi >= 10 and cap_rate >= 8 and cashflow_anual > 0:
+        recomendacion = "COMPRAR"
+    elif 5 <= roi < 10 or 5 <= cap_rate < 8:
+        recomendacion = "MANTENER / ESTUDIAR"
+    else:
+        recomendacion = "NO INVERTIR"
+
+    justificacion = generar_justificacion(roi, cap_rate, cashflow_anual, recomendacion)
+
     st.session_state.resultado = {
         "nombre_usuario": nombre_usuario,
         "fecha": datetime.now().strftime("%d/%m/%Y"),
@@ -103,25 +158,24 @@ if st.button("✅ Calcular rentabilidad"):
         "cap_rate": cap_rate,
         "roi": roi,
         "cuota_credito": cuota_credito,
-        "recomendacion": (
-            "COMPRAR" if roi >= 10 and cap_rate >= 8 and cashflow_anual > 0
-            else "MANTENER / ESTUDIAR" if roi >= 5
-            else "NO INVERTIR"
-        )
+        "recomendacion": recomendacion,
+        "justificacion": justificacion
     }
 
     st.metric("💸 Cash Flow Anual", f"${cashflow_anual:,.0f}")
     st.metric("📊 CAP Rate", f"{cap_rate:.2f}%")
     st.metric("📈 ROI", f"{roi:.2f}%")
     st.metric("🏦 Cuota mensual del crédito", f"${cuota_credito:,.0f}")
-    st.success(f"🧠 Recomendación: {st.session_state.resultado['recomendacion']}")
+    st.success(f"🧠 Recomendación: {recomendacion}")
+    st.info("📌 " + justificacion)
 
 if "resultado" in st.session_state:
     if st.button("📄 Exportar a PDF"):
         r = st.session_state.resultado
         pdf_base64 = crear_pdf(
             r["nombre_usuario"], r["fecha"], r["valor_inmueble"], r["ingreso_mensual"],
-            r["cashflow_anual"], r["cap_rate"], r["roi"], r["cuota_credito"], r["recomendacion"]
+            r["cashflow_anual"], r["cap_rate"], r["roi"], r["cuota_credito"],
+            r["recomendacion"], r["justificacion"]
         )
         st.markdown(
             f'<a href="data:application/pdf;base64,{pdf_base64}" '
@@ -129,4 +183,3 @@ if "resultado" in st.session_state:
             f'style="font-size:18px; color:#0a75ad; text-decoration:underline;">📥 Descargar PDF</a>',
             unsafe_allow_html=True
         )
-
