@@ -122,3 +122,34 @@ else:
     if usar_credito:
         st.markdown(f"- **Incluye crédito con cuota mensual de:** ${cuota_mensual_credito:,.0f}")
 
+import pdfkit
+import tempfile
+import base64
+import os
+
+def generar_pdf(resumen_html):
+    # Crear archivo temporal
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
+        pdfkit.from_string(resumen_html, tmpfile.name)
+        with open(tmpfile.name, "rb") as f:
+            base64_pdf = base64.b64encode(f.read()).decode("utf-8")
+        os.unlink(tmpfile.name)
+    return base64_pdf
+
+if st.button("📄 Exportar resultados a PDF"):
+    resumen_html = f"""
+    <h2>Resumen de Rentabilidad</h2>
+    <ul>
+        <li><b>Valor inmueble:</b> ${valor_inmueble:,.0f}</li>
+        <li><b>Ingreso mensual:</b> ${ingreso_mensual:,.0f}</li>
+        <li><b>Cash Flow anual:</b> ${cashflow_anual:,.0f}</li>
+        <li><b>CAP Rate:</b> {cap_rate:.2f}%</li>
+        <li><b>ROI:</b> {roi:.2f}%</li>
+        <li><b>Cuota crédito:</b> ${cuota_mensual_credito:,.0f}</li>
+        <li><b>Recomendación:</b> {recomendacion}</li>
+    </ul>
+    """
+
+    pdf_base64 = generar_pdf(resumen_html)
+    href = f'<a href="data:application/pdf;base64,{pdf_base64}" download="reporte_inmobiliario.pdf">📥 Descargar PDF</a>'
+    st.markdown(href, unsafe_allow_html=True)
