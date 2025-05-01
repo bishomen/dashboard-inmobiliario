@@ -11,36 +11,51 @@ import os
 st.set_page_config(page_title="Dashboard Inmobiliario", layout="centered")
 
 def crear_pdf(nombre_usuario, fecha, valor_inmueble, ingreso_mensual, cashflow_anual, cap_rate, roi, cuota_credito, recomendacion):
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    c = canvas.Canvas(temp_file.name, pagesize=letter)
-    c.setFont("Helvetica-Bold", 16)
+    tmpdir = tempfile.gettempdir()
+    ruta_pdf = os.path.join(tmpdir, f"reporte_{datetime.now().timestamp()}.pdf")
+
+    c = canvas.Canvas(ruta_pdf, pagesize=letter)
+    width, height = letter
+
     c.setFillColor(colors.darkblue)
-    c.drawString(50, 750, "Resumen de Rentabilidad Inmobiliaria")
+    c.setFont("Helvetica-Bold", 20)
+    c.drawString(50, height - 50, "📊 Informe de Rentabilidad Inmobiliaria")
+
     c.setFont("Helvetica", 12)
     c.setFillColor(colors.black)
+    c.drawString(50, height - 70, f"Generado por: {nombre_usuario} | Fecha: {fecha}")
+    c.line(50, height - 75, width - 50, height - 75)
 
-    y = 720
-    line_height = 20
-    data = [
-        f"Nombre: {nombre_usuario}",
-        f"Fecha: {fecha}",
-        f"Valor inmueble: ${valor_inmueble:,.0f}",
-        f"Ingreso mensual: ${ingreso_mensual:,.0f}",
-        f"Cash Flow anual: ${cashflow_anual:,.0f}",
-        f"CAP Rate: {cap_rate:.2f}%",
-        f"ROI: {roi:.2f}%",
-        f"Cuota crédito: ${cuota_credito:,.0f}",
-        f"Recomendación: {recomendacion}"
+    y = height - 100
+    espaciado = 18
+    campos = [
+        ("Valor del inmueble", f"${valor_inmueble:,.0f}"),
+        ("Ingreso mensual", f"${ingreso_mensual:,.0f}"),
+        ("Cash Flow anual", f"${cashflow_anual:,.0f}"),
+        ("CAP Rate", f"{cap_rate:.2f}%"),
+        ("ROI estimado", f"{roi:.2f}%"),
+        ("Cuota mensual crédito", f"${cuota_credito:,.0f}"),
     ]
 
-    for item in data:
-        c.drawString(50, y, item)
-        y -= line_height
+    for titulo, valor in campos:
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(50, y, f"{titulo}:")
+        c.setFont("Helvetica", 12)
+        c.drawString(250, y, valor)
+        y -= espaciado
+
+    y -= 15
+    c.setFont("Helvetica-Bold", 14)
+    color = colors.green if recomendacion == "COMPRAR" else colors.orange if "MANTENER" in recomendacion else colors.red
+    c.setFillColor(color)
+    c.drawString(50, y, f"📌 Recomendación final: {recomendacion.upper()}")
 
     c.save()
-    with open(temp_file.name, "rb") as f:
+
+    with open(ruta_pdf, "rb") as f:
         pdf_base64 = base64.b64encode(f.read()).decode("utf-8")
-    os.unlink(temp_file.name)
+
+    os.remove(ruta_pdf)
     return pdf_base64
 
 # Interfaz
@@ -79,25 +94,39 @@ if st.button("✅ Calcular rentabilidad"):
     cap_rate = (ingreso_anual / valor_inmueble) * 100 if valor_inmueble else 0
     roi = (cashflow_anual / cuota_inicial) * 100 if cuota_inicial else 0
 
+    st.session_state.resultado = {
+        "nombre_usuario": nombre_usuario,
+        "fecha": datetime.now().strftime("%d/%m/%Y"),
+        "valor_inmueble": valor_inmueble,
+        "ingreso_mensual": ingreso_mensual,
+        "cashflow_anual": cashflow_anual,
+        "cap_rate": cap_rate,
+        "roi": roi,
+        "cuota_credito": cuota_credito,
+        "recomendacion": (
+            "COMPRAR" if roi >= 10 and cap_rate >= 8 and cashflow_anual > 0
+            else "MANTENER / ESTUDIAR" if roi >= 5
+            else "NO INVERTIR"
+        )
+    }
+
     st.metric("💸 Cash Flow Anual", f"${cashflow_anual:,.0f}")
     st.metric("📊 CAP Rate", f"{cap_rate:.2f}%")
     st.metric("📈 ROI", f"{roi:.2f}%")
     st.metric("🏦 Cuota mensual del crédito", f"${cuota_credito:,.0f}")
+    st.success(f"🧠 Recomendación: {st.session_state.resultado['recomendacion']}")
 
-    if roi >= 10 and cap_rate >= 8 and cashflow_anual > 0:
-        recomendacion = "COMPRAR"
-    elif 5 <= roi < 10 or 5 <= cap_rate < 8:
-        recomendacion = "MANTENER / ESTUDIAR"
-    else:
-        recomendacion = "NO INVERTIR"
-    st.success(f"🧠 Recomendación: {recomendacion}")
-
+if "resultado" in st.session_state:
     if st.button("📄 Exportar a PDF"):
-        fecha_actual = datetime.now().strftime("%d/%m/%Y")
-        pdf_base64 = crear_pdf(nombre_usuario, fecha_actual, valor_inmueble, ingreso_mensual, cashflow_anual, cap_rate, roi, cuota_credito, recomendacion)
+        r = st.session_state.resultado
+        pdf_base64 = crear_pdf(
+            r["nombre_usuario"], r["fecha"], r["valor_inmueble"], r["ingreso_mensual"],
+            r["cashflow_anual"], r["cap_rate"], r["roi"], r["cuota_credito"], r["recomendacion"]
+        )
         st.markdown(
-            f'<p style="text-align:center"><a href="data:application/pdf;base64,{pdf_base64}" '
+            f'<a href="data:application/pdf;base64,{pdf_base64}" '
             f'download="reporte_inmobiliario.pdf" '
-            f'style="font-size:18px; color:#0a75ad; text-decoration:underline;">📥 Descargar PDF</a></p>',
+            f'style="font-size:18px; color:#0a75ad; text-decoration:underline;">📥 Descargar PDF</a>',
             unsafe_allow_html=True
         )
+
