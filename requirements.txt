@@ -1,3 +1,5 @@
 streamlit
 Plotly
 Pandas 
+streamlit
+xhtml2pdf
