@@ -1,5 +1,5 @@
 
-# Dashboard de Rentabilidad Inmobiliaria 📊🏠
+# Dashboard de Rentabilidad Inmobiliaria 
 
 Esta herramienta permite calcular indicadores clave de rentabilidad para inversiones inmobiliarias:
 - ROI (Retorno sobre la inversión)
@@ -8,7 +8,7 @@ Esta herramienta permite calcular indicadores clave de rentabilidad para inversi
 - Cuota mensual de crédito
 
 Además, genera un informe PDF con diseño profesional y justificación automática de la recomendación:
-✅ COMPRAR / 🟡 MANTENER / ❌ NO INVERTIR
+ COMPRAR /  MANTENER /  NO INVERTIR
 
 ## Requisitos
 
