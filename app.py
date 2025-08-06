@@ -115,6 +115,16 @@ elif rentabilidad_bruta >= 6:
 else:
     st.warning("⚠️ Rentabilidad bruta baja.")
 
+if roi >= 12:
+    st.success("✔️ ROI excelente: retorno muy alto sobre tu inversión.")
+elif roi >= 8:
+    st.info("➖ ROI bueno: retorno sólido.")
+elif roi >= 5:
+    st.warning("⚠️ ROI bajo: considera otros factores antes de invertir.")
+else:
+    st.error("❌ ROI muy bajo: la inversión no sería rentable.")
+
+
 if rentabilidad_neta >= 8:
     st.success("✔️ Rentabilidad neta sólida.")
 elif rentabilidad_neta >= 4:
@@ -174,9 +184,11 @@ def generar_pdf():
     comentarios = [
         ("CAP Rate", cap_rate, [(8, "✔️ Alto"), (5, "➖ Moderado"), (0, "⚠️ Bajo")]),
         ("Rentabilidad Bruta", rentabilidad_bruta, [(10, "✔️ Excelente"), (6, "➖ Aceptable"), (0, "⚠️ Baja")]),
+        ("ROI", roi, [(12, "✔️ Excelente"), (8, "➖ Bueno"), (5, "⚠️ Bajo"), (0, "❌ Muy bajo")]),
         ("Rentabilidad Neta", rentabilidad_neta, [(8, "✔️ Sólida"), (4, "➖ Aceptable"), (0, "⚠️ Insuficiente")]),
         ("Payback", payback or 0, [(0, "❌ Sin Cash Flow")] if not payback else [(10, "✔️ Corto"), (15, "➖ Moderado"), (999, "⚠️ Largo")]),
         ("Price-to-Rent", price_to_rent or 0, [(15, "✔️ Bajo"), (20, "➖ Moderado"), (999, "⚠️ Alto")])
+
     ]
     for nombre, valor, rangos in comentarios:
         for umbral, mensaje in rangos:
