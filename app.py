@@ -140,11 +140,11 @@ elif payback:
     st.warning(f"⚠️ Payback largo ({payback:.2f} años).")
 
 if price_to_rent and price_to_rent <= 15:
-    st.success(f"✔️ Price-to-Rent bajo ({price_to_rent:.2f}).")
+    st.success(f"✔️ Price-to-Rent bajo - Sugiere que es más asequible comprar que alquilar. El mercado de la vivienda puede ser considerado barato y podría ser una buena oportunidad para los compradores. ({price_to_rent:.2f}).")
 elif price_to_rent and price_to_rent <= 20:
-    st.info(f"➖ Price-to-Rent moderado ({price_to_rent:.2f}).")
+    st.info(f"➖ Price-to-Rent moderado - Indica que es un mercado de equilibrio. Puede ser mejor alquilar que comprar en este rango, ya que los precios de compra son significativamente más altos en relación con los alquileres.  ({price_to_rent:.2f}).")
 elif price_to_rent:
-    st.warning(f"⚠️ Price-to-Rent alto ({price_to_rent:.2f}).")
+    st.warning(f"⚠️ Price-to-Rent alto - Sugiere que es más asequible comprar que alquilar. El mercado de la vivienda puede ser considerado barato y podría ser una buena oportunidad para los compradores.  ({price_to_rent:.2f}).")
 
 # Exportar PDF con análisis
 def generar_pdf():
@@ -187,7 +187,7 @@ def generar_pdf():
         ("ROI", roi, [(12, "✔️ Excelente"), (8, "➖ Bueno"), (5, "⚠️ Bajo"), (0, "❌ Muy bajo")]),
         ("Rentabilidad Neta", rentabilidad_neta, [(8, "✔️ Sólida"), (4, "➖ Aceptable"), (0, "⚠️ Insuficiente")]),
         ("Payback", payback or 0, [(0, "❌ Sin Cash Flow")] if not payback else [(10, "✔️ Corto"), (15, "➖ Moderado"), (999, "⚠️ Largo")]),
-        ("Price-to-Rent", price_to_rent or 0, [(15, "✔️ Bajo"), (20, "➖ Moderado"), (999, "⚠️ Alto")])
+        ("Price-to-Rent", price_to_rent or 0, [(15, "✔️ Bajo "), (20, "➖ Moderado "), (999, "⚠️ Alto ")])
 
     ]
     for nombre, valor, rangos in comentarios:
